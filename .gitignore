@@ -1,0 +1,3 @@
+# Exclude any pycache instances
+**/__pycache__/
+.env

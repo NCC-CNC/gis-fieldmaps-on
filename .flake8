@@ -1,0 +1,14 @@
+[flake8]
+#asdf
+ignore = 
+    E302, # Expected 2 blank lines, found 1
+    E303, # Too many blank lines
+    E402, # Module level import not at top of file
+    E501, # Line too long
+    E722, # No bare except clauses
+    F401, # Module imported but unused
+    F403, # Don't allow 'from module import *'
+    F405, # Variable name may be undefined or might be imported via *
+    W391, # Blank line at end of file
+    W503  # Line break before binary operator
+max-line-length = 99
