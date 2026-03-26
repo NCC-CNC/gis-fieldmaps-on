@@ -7,7 +7,7 @@ import linecache
 import gc
 
 # LOGGING CONSTANTS
-LOG_FILENAME_PREFIX = r'fieldmaps_dataprep_'
+LOG_FILENAME_PREFIX = r'fieldmaps_on_'
 
 LL_DEBUG = 'DEBUG'
 LL_INFO = 'INFO'

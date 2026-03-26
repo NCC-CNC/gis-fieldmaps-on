@@ -1,0 +1,39 @@
+// GIS-FIELDMAPS-ON Config File
+{
+    // Temp File Geodatabase
+    "TempFgdb": {
+        // Path to parent folder (can be relative path (relative to script location))
+        "ParentFolder": "C:\\path\\to\\parent\\folder",
+        // Create the temp file geodatabase with a static name having no datestamp (true or false)
+        "StaticName": true,
+        "KeepPrelimObjects": true
+    },
+
+    // Validate Only Flag
+    "ValidateOnly": true,
+
+    // Write Changes to EGDB
+    "OutputToEgdb": true,
+
+    // EGDB Connection File
+    "OutputEGDBConnection": {
+        // SQL Server Instance Name
+        "Instance": "instance name",
+        // Geodatabase Name
+        "Db": "egdb_name",
+        // Data Creator Login
+        "Login": "login",
+        // Data Creator Password
+        "Password": "password"
+    },
+ 
+    // Notification Information
+    "Email": {
+        // Recipient list: list of email addresses to notify after the script completes
+        "Recipients": [
+            "joe.shmoe@penetrode.com"
+        ],
+        // Email subject line (string)
+        "Subject": "I am a subject line in a notification email"
+    }
+}
