@@ -6,17 +6,32 @@
         "ParentFolder": "C:\\path\\to\\parent\\folder",
         // Create the temp file geodatabase with a static name having no datestamp (true or false)
         "StaticName": true,
+        // Retain any preliminary or intermediary objects created during the script run
         "KeepPrelimObjects": true
     },
+
+    // Feature Classes
+    "FeatureClasses": [
+        "ITGEO_GEN.MWO_AnthroLine",
+        "ITGEO_GEN.MWO_AnthroPoint",
+        "ITGEO_GEN.MWO_AnthroPoly",
+        "ITGEO_GEN.MWO_EasementLine",
+        "ITGEO_GEN.MWO_HazardsPoint",
+        "ITGEO_GEN.MWO_IssuesPoint",
+        "ITGEO_GEN.MWO_SARLine",
+        "ITGEO_GEN.MWO_SARPoint",
+        "ITGEO_GEN.MWO_SARPoly",
+        "ITGEO_GEN.MWO_StewardshipAction",
+        "ITGEO_GEN.MWO_TargetsThreats",
+        "ITGEO_GEN.MWO_Trail",
+        "ITGEO_GEN.MWO_VegCommunityCollection"
+    ],
 
     // Validate Only Flag
     "ValidateOnly": true,
 
-    // Write Changes to EGDB
-    "OutputToEgdb": true,
-
-    // EGDB Connection File
-    "OutputEGDBConnection": {
+    // EGDB Connection
+    "EGDBConnection": {
         // SQL Server Instance Name
         "Instance": "instance name",
         // Geodatabase Name

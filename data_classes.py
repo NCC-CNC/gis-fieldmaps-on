@@ -1,5 +1,5 @@
-
 # IMPORTS
+from datetime import datetime as dt
 
 class ArcSdeConnParams:
     """Parameters used for the creation of an arcpy.ArcSDESQLExecute class instance.
@@ -28,3 +28,50 @@ class ArcSdeConnParams:
         self.database = database
         self.login = login
         self.password = password
+
+class FeatureClassObj:
+
+    def __init__(
+            self,
+            name: str = '',
+            shape_type: str = '',
+    ) -> None:
+        self.name = name
+        self.shape_type = shape_type
+
+
+
+class TrackPointClass:
+    """This class defines an AGOL Track Point.  It contains class-wide field names and aliases, as well as instance-specific values
+    """
+
+    # Objects -> Tuple(name, alias)
+    fc_track_point_all = ('agol_track_point_all', 'AGOL Track Points - All')
+    fc_track_point_low_accuracy = ('agol_track_point_low_accuracy', 'AGOL Track Points - Low Accuracy')
+    fc_track_point_orphan = ('agol_track_point_orphan', 'AGOL Track Points - Orphan')
+    fc_track_point_main = ('agol_track_point_main', 'AGOL Track Points - Main')
+
+    # Fields
+    fld_created_user = ('created_user', 'Created User')
+    fld_user = ('user', 'AGOL User')
+    fld_date_group = ('date_group', 'Date Group')
+    fld_full_name = ('full_name', 'Full Name')
+    fld_group_key = ('group_key', 'Group Key')
+    fld_horizontal_accuracy = ('horizontal_accuracy', 'Horizontal Accuracy')
+    fld_identifier = ('identifier', 'Identifier')
+    fld_location_timestamp = ('location_timestamp', 'Location Timestamp')
+    fld_session_id = ('session_id', 'Session ID')
+    fld_shape = ('shape', 'Shape')
+    fld_shapeXYToken = ('Shape@XY', 'Shape XY')
+
+    def __init__(
+        self,
+        user: str,
+        location_timestamp: dt,
+        session_id: str,
+        xy_tuple: tuple[float, float]
+    ) -> None:
+        self.user = user
+        self.location_timestamp = location_timestamp
+        self.session_id = session_id
+        self.xy_tuple = xy_tuple

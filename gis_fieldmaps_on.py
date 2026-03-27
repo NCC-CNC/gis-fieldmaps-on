@@ -14,7 +14,7 @@ import log_helper as logh
 import notification_helper as noth
 import generic_helper as genh
 import gdb_helper as gdbh
-from data_classes import ArcSdeConnParams
+from data_classes import ArcSdeConnParams, FeatureClassObj
 
 
 __version__ = '1.0'
@@ -84,23 +84,23 @@ def main(config):
         # MARK: EGDB Connection File
         logh.log_entry('EGDB Connection File Section')
 
-        # Write output to EGDB feature class (boolean)
-        output_to_egdb = config.OutputToEgdb
-        if not output_to_egdb:
-            output_to_egdb = False
+        # Validate Only flag (boolean)
+        validate_only = config.ValidateOnly
+        if not validate_only:
+            validate_only = False
         else:
-            output_to_egdb = True
-        logh.log_entry(f'Output to Enterprise GDB: {"Yes" if output_to_egdb else "No"}')
+            validate_only = True
+        logh.log_entry(f'Validate Only: {"Yes" if validate_only else "No"}')
 
         # Get the Output EGDB object
-        if not hasattr(config, 'OutputEGDBConnection'):
-            logh.log_entry('"OutputEGDBConnection" property not found in config file.', logh.LL_ERROR)
-            raise Exception('"OutputEGDBConnection" property not found in config file.') from None
+        if not hasattr(config, 'EGDBConnection'):
+            logh.log_entry('"EGDBConnection" property not found in config file.', logh.LL_ERROR)
+            raise Exception('"EGDBConnection" property not found in config file.') from None
 
-        output_egdb_connection = config.OutputEGDBConnection
+        egdb_connection = config.EGDBConnection
 
         # instance
-        tld_instance = output_egdb_connection.Instance
+        tld_instance = egdb_connection.Instance
         if not tld_instance:
             logh.log_entry('"Instance" property value is None or empty.', logh.LL_ERROR)
             raise Exception('"Instance" property value is None or empty.') from None
@@ -108,7 +108,7 @@ def main(config):
         logh.log_entry(f'Instance: {tld_instance}')
 
         # db
-        tld_db = output_egdb_connection.Db
+        tld_db = egdb_connection.Db
         if not tld_db:
             logh.log_entry('"Db" property value is None or empty.', logh.LL_ERROR)
             raise Exception('"Db" property value is None or empty.') from None
@@ -116,7 +116,7 @@ def main(config):
         logh.log_entry(f'Database: {tld_db}')
 
         # login
-        tld_login = output_egdb_connection.Login
+        tld_login = egdb_connection.Login
         if not tld_login:
             logh.log_entry('"Login" property value is None or empty.', logh.LL_ERROR)
             raise Exception('"Login" property value is None or empty.') from None
@@ -124,10 +124,30 @@ def main(config):
         logh.log_entry(f'Login: {tld_login}')
 
         # password
-        tld_password = output_egdb_connection.Password
+        tld_password = egdb_connection.Password
         if not tld_password:
             logh.log_entry('"Password" property value is None or empty.', logh.LL_ERROR)
             raise Exception('"Password" property value is None or empty.') from None
+
+        # MARK: Feature Class List
+        logh.log_entry('Feature Classes')
+
+        # Get the FeatureClasses object
+        if not hasattr(config, 'FeatureClasses'):
+            logh.log_entry('"FeatureClasses" property not found in config file.', logh.LL_ERROR)
+            raise Exception('"FeatureClasses" property not found in config file.') from None
+
+        feature_classes = config.FeatureClasses
+        if not feature_classes:
+            feature_classes = []
+        elif not isinstance(feature_classes, list):
+            feature_classes = []
+
+        if len(feature_classes) == 0:
+            logh.log_entry('Feature Class list is empty.  There must be at least one!', logh.LL_ERROR)
+            raise Exception('Feature Class list is empty.  There must be at least one!') from None
+        else:
+            logh.log_entry(f'  Feature class count: {len(feature_classes)}')
 
         # MESSAGE
         pmsg += f'==================================================\n'
@@ -135,13 +155,18 @@ def main(config):
         pmsg += f' > Temp FGDB Parent Folder: {parent_folder}\n'
         pmsg += f' > Temp FGDB Static Name: {static_name}\n'
         pmsg += f' > Temp FGDB Keep Preliminary Objects: {keep_prelim_objects}\n'
+        pmsg += f' > Validate Only: {"Yes" if validate_only else "No"}\n'
         pmsg += f'--------------------------------------------------\n'
-        pmsg += f' > Output to EGDB: {"Yes" if output_to_egdb else "No"}\n'
+        pmsg += f' > Server Instance: {tld_instance}\n'
+        pmsg += f' > Enterprise Geodatabase: {tld_db}\n'
+        pmsg += f' > Login: {tld_login}\n'
+        pmsg += f'--------------------------------------------------\n'
+        pmsg += f' > FEATURE CLASSES\n'
 
-        if output_to_egdb:
-            pmsg += f' > Destination Instance: {tld_instance}\n'
-            pmsg += f' > Destination Geodatabase: {tld_db}\n'
-            pmsg += f' > Destination Login: {tld_login}\n'
+        for fc in feature_classes:
+            pmsg += f' >   {fc}\n'
+
+        pmsg += f'==================================================\n'
 
         # endregion
 
@@ -160,45 +185,117 @@ def main(config):
 
         # endregion
 
-        # region DESTINATION EGDB CONNECTION
+        # region EGDB CONNECTION
 
-        # If we are outputting results to EGDB...
-        tld_schema = ''     # This will be the default schema of the login in the destination egdb
+        # This will be the default schema of the egdb login
+        tld_schema = ''     
 
-        if output_to_egdb:
-            logh.log_entry(logh.SEPARATOR_2)
-            logh.log_entry('OUTPUT GEODATABASE VALIDATION')
-            logh.log_entry(logh.SEPARATOR_2)
+        logh.log_entry(logh.SEPARATOR_2)
+        logh.log_entry('GEODATABASE VALIDATION')
+        logh.log_entry(logh.SEPARATOR_2)
 
-            # Create the database connection file
-            logh.log_entry('Database connection file for output geodatabase')
-            tld_conn = gdbh.create_database_connection_file(instance=tld_instance,
-                                                            db=tld_db,
-                                                            login=tld_login,
-                                                            password=tld_password,
-                                                            base_name='tld_conn',
-                                                            folder_path=parent_folder)
+        # Create the database connection file
+        logh.log_entry('Database connection file for geodatabase')
+        tld_conn = gdbh.create_database_connection_file(instance=tld_instance,
+                                                        db=tld_db,
+                                                        login=tld_login,
+                                                        password=tld_password,
+                                                        base_name='tld_conn',
+                                                        folder_path=parent_folder)
 
-            logh.log_entry(f'Connection File: {tld_conn}')
+        logh.log_entry(f'Connection File: {tld_conn}')
 
-            # Get the default schema name
-            params = ArcSdeConnParams(conn_file=tld_conn)
-            tld_schema = gdbh.get_default_schema(params=params)
-            logh.log_entry(f'Default Schema: {tld_schema}')
+        # Get the default schema name
+        params = ArcSdeConnParams(conn_file=tld_conn)
+        tld_schema = gdbh.get_default_schema(params=params)
+        logh.log_entry(f'Default Schema: {tld_schema}')
+
+        # endregion
+
+        # region FEATURE CLASS VALIDATION
+
+        # MARK: Validate Feature Classes
+        arcpy.env.workspace = tld_conn
+
+        fcs = defaultdict(list)
+        dict_fc: dict[str, FeatureClassObj] = {}
+        other_items = []
+        missing_items = []
+
+        # Eliminate duplicates
+        feature_classes = list(set(feature_classes))
+
+        # Retrieve their feature dataset?  May not be important
+        for fc in feature_classes:
+            if arcpy.Exists(fc):
+                d = arcpy.Describe(fc)
+                if d.dataType.lower() == 'featureclass':
+                    fcs[fc].append(d.baseName)
+                    fcs[fc].append(d.catalogPath)
+
+                    dict_fc[fc] = FeatureClassObj(name=fc, shape_type=d.shapeType)
+                else:
+                    other_items.append(fc)
+            else:
+                missing_items.append(fc)
+
+        logh.log_entry('Feature Classes:')
+        for ix, (fc, l) in enumerate(fcs.items()):
+            logh.log_entry(f'{ix}. {fc}')
+        logh.log_entry('Other Stuff:')
+        for ix, o in enumerate(other_items):
+            logh.log_entry(f'{ix}. {o}')
+        logh.log_entry('Missing:')
+        for ix, m in enumerate(missing_items):
+            logh.log_entry(f'{ix}. {m}')
+
+        if len(fcs) == 0:
+            logh.log_entry('No feature classes found in workspace.', logh.LL_ERROR)
+            raise Exception('No feature classes found in workspace.') from None
+
+        for (fc, obj) in dict_fc.items():
+            logh.log_entry(f'fc: {fc}   Shape type: {obj.shape_type}')
+
+
+        # Cursor
+        # with arcpy.da.SearchCursor('ITGEO_GEN.blueberry', '*') as cursor:
+        #     for row in cursor:
+        #         logh.log_entry(f'row: {row[2]}')
+        #     del cursor
+
+        # Fields
+        # for a in arcpy.ListFields(dataset='ITGEO_GEN.blueberry'):
+        #     logh.log_entry(f'name: {a.name}')
+
+
+
+
+
+
+        # # Set the spatial references
+        # sr = genh.get_sr_pcs_canada_lcc_wgs84()
+
+        # # arcpy environment
+        # arcpy.env.overwriteOutput = True
+        # arcpy.env.workspace = fgdb_path
+        # arcpy.env.outputCoordinateSystem = sr
+
+
 
         # endregion
 
-        # region GENERAL ARCPY SETUP
+        # region DO THE THING
 
-        # Set the spatial references
-        sr = genh.get_sr_pcs_canada_lcc_wgs84()
+        # What I need to do here:
+        # 1. For each feature in each feature class:
+        #   - Retrieve UTM Easting, Northing, and Zone for each feature's centroid
+        #   - Calculate area for each polygon feature
+        #   - Calculate length for each line feature
 
-        # arcpy environment
-        arcpy.env.overwriteOutput = True
-        arcpy.env.workspace = fgdb_path
-        arcpy.env.outputCoordinateSystem = sr
+
 
         # endregion
+
 
         # region CLEAN UP
 

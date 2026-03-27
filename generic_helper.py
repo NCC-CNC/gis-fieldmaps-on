@@ -78,3 +78,9 @@ class EnvVar(Enum):
     ITGEO_SMTP_LOGIN='ITGEO_SMTP_LOGIN'
     ITGEO_SMTP_PASSWORD='ITGEO_SMTP_PASSWORD'
     ITGEO_SMTP_SENDER='ITGEO_SMTP_SENDER'
+
+class ShapeType(Enum):
+    POINT='point'
+    MULTIPOINT='multipoint'
+    POLYLINE='polyline'
+    POLYGON='polygon'
