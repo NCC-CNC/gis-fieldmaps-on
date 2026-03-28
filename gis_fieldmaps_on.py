@@ -137,17 +137,18 @@ def main(config):
             logh.log_entry('"FeatureClasses" property not found in config file.', logh.LL_ERROR)
             raise Exception('"FeatureClasses" property not found in config file.') from None
 
-        feature_classes = config.FeatureClasses
-        if not feature_classes:
-            feature_classes = []
-        elif not isinstance(feature_classes, list):
-            feature_classes = []
-
-        if len(feature_classes) == 0:
-            logh.log_entry('Feature Class list is empty.  There must be at least one!', logh.LL_ERROR)
-            raise Exception('Feature Class list is empty.  There must be at least one!') from None
+        feature_class_entries: list[str] = config.FeatureClasses
+        if not feature_class_entries:
+            logh.log_entry('"FeatureClasses" is nothing (how is this even possible?)', logh.LL_ERROR)
+            raise Exception('"FeatureClasses" is nothing (how is this even possible?)') from None
+        elif not isinstance(feature_class_entries, list):
+            logh.log_entry('"FeatureClasses" is not a list', logh.LL_ERROR)
+            raise Exception('"FeatureClasses" is not a list') from None
+        elif len(feature_class_entries) == 0:
+            logh.log_entry('"FeatureClasses" list must have at least one entry!', logh.LL_ERROR)
+            raise Exception('"FeatureClasses" list must have at least one entry!') from None
         else:
-            logh.log_entry(f'  Feature class count: {len(feature_classes)}')
+            logh.log_entry(f'"FeatureClasses" list count: {len(feature_class_entries)}')
 
         # MESSAGE
         pmsg += f'==================================================\n'
@@ -163,8 +164,8 @@ def main(config):
         pmsg += f'--------------------------------------------------\n'
         pmsg += f' > FEATURE CLASSES\n'
 
-        for fc in feature_classes:
-            pmsg += f' >   {fc}\n'
+        for feature_class_entry in feature_class_entries:
+            pmsg += f' >   {feature_class_entry}\n'
 
         pmsg += f'==================================================\n'
 
@@ -217,45 +218,37 @@ def main(config):
         # MARK: Validate Feature Classes
         arcpy.env.workspace = tld_conn
 
-        fcs = defaultdict(list)
-        dict_fc: dict[str, FeatureClassObj] = {}
-        other_items = []
-        missing_items = []
+        dict_feature_classes: dict[str, FeatureClassObj] = {}
+        other_entries: list[str] = []
+        missing_entries: list[str] = []
 
-        # Eliminate duplicates
-        feature_classes = list(set(feature_classes))
+        # Eliminate duplicate entries
+        feature_class_entries = list(set(feature_class_entries))
+        feature_class_entries.sort()
 
-        # Retrieve their feature dataset?  May not be important
-        for fc in feature_classes:
-            if arcpy.Exists(fc):
-                d = arcpy.Describe(fc)
-                if d.dataType.lower() == 'featureclass':
-                    fcs[fc].append(d.baseName)
-                    fcs[fc].append(d.catalogPath)
-
-                    dict_fc[fc] = FeatureClassObj(name=fc, shape_type=d.shapeType)
+        for feature_class_entry in feature_class_entries:
+            if arcpy.Exists(feature_class_entry):
+                descr = arcpy.Describe(feature_class_entry)
+                if descr.dataType.lower() == 'featureclass':
+                    dict_feature_classes[feature_class_entry] = FeatureClassObj(name=feature_class_entry, shape_type=descr.shapeType)
                 else:
-                    other_items.append(fc)
+                    other_entries.append(feature_class_entry)
             else:
-                missing_items.append(fc)
+                missing_entries.append(feature_class_entry)
 
         logh.log_entry('Feature Classes:')
-        for ix, (fc, l) in enumerate(fcs.items()):
-            logh.log_entry(f'{ix}. {fc}')
-        logh.log_entry('Other Stuff:')
-        for ix, o in enumerate(other_items):
-            logh.log_entry(f'{ix}. {o}')
-        logh.log_entry('Missing:')
-        for ix, m in enumerate(missing_items):
-            logh.log_entry(f'{ix}. {m}')
+        for (feature_class_entry, fc_obj) in dict_feature_classes.items():
+            logh.log_entry(f'fc: {feature_class_entry}   Shape type: {fc_obj.shape_type}')
+        logh.log_entry('Other Entries:')
+        for oe in other_entries:
+            logh.log_entry(oe)
+        logh.log_entry('Missing Entries:')
+        for me in missing_entries:
+            logh.log_entry(me)
 
-        if len(fcs) == 0:
-            logh.log_entry('No feature classes found in workspace.', logh.LL_ERROR)
-            raise Exception('No feature classes found in workspace.') from None
-
-        for (fc, obj) in dict_fc.items():
-            logh.log_entry(f'fc: {fc}   Shape type: {obj.shape_type}')
-
+        if len(dict_feature_classes) == 0:
+            logh.log_entry('No valid feature classes found in list of entries.', logh.LL_ERROR)
+            raise Exception('No valid feature classes found in list of entries.') from None
 
         # Cursor
         # with arcpy.da.SearchCursor('ITGEO_GEN.blueberry', '*') as cursor:
@@ -266,11 +259,6 @@ def main(config):
         # Fields
         # for a in arcpy.ListFields(dataset='ITGEO_GEN.blueberry'):
         #     logh.log_entry(f'name: {a.name}')
-
-
-
-
-
 
         # # Set the spatial references
         # sr = genh.get_sr_pcs_canada_lcc_wgs84()
@@ -291,6 +279,35 @@ def main(config):
         #   - Retrieve UTM Easting, Northing, and Zone for each feature's centroid
         #   - Calculate area for each polygon feature
         #   - Calculate length for each line feature
+
+        # Divvy up into point, line, and polygon groups
+        fc_points: list[FeatureClassObj] = [fc_obj for fc_obj in dict_feature_classes.values() if fc_obj.shape_type.lower() == genh.ShapeType.POINT.value]
+        fc_polylines: list[FeatureClassObj] = [fc_obj for fc_obj in dict_feature_classes.values() if fc_obj.shape_type.lower() == genh.ShapeType.POLYLINE.value]
+        fc_polygons: list[FeatureClassObj] = [fc_obj for fc_obj in dict_feature_classes.values() if fc_obj.shape_type.lower() == genh.ShapeType.POLYGON.value]
+
+        logh.log_entry('POINT FCS:')
+        for fc_point in fc_points:
+            logh.log_entry(f' > {fc_point.name}')
+        logh.log_entry('POLYLINE FCS:')
+        for fc_polyline in fc_polylines:
+            logh.log_entry(f' > {fc_polyline.name}')
+        logh.log_entry('POLYGON FCS:')
+        for fc_polygon in fc_polygons:
+            logh.log_entry(f' > {fc_polygon.name}')
+        
+        # Check for default fields in each feature class
+        # # Standard area field names used across most polygon layers
+        # FIELD_AREA_HA  = "UTM_Ha"   # geodesic hectares
+        # FIELD_AREA_AC  = "UTM_Ac"   # international acres (converted from Ha)
+        # INTERNATIONAL_ACRES_PER_HA = 2.471053814671653
+
+        # # Standard coordinate/measurement field names 
+        # FIELD_UTM_ZONE = "UTM_Zone"
+        # FIELD_EASTING  = "Easting"
+        # FIELD_NORTHING = "Northing"
+        # FIELD_LEN_UTM  = "Length_UTM"
+
+        # TODO: I'm Here!!!
 
 
 

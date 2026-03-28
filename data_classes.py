@@ -29,6 +29,7 @@ class ArcSdeConnParams:
         self.login = login
         self.password = password
 
+
 class FeatureClassObj:
 
     def __init__(
@@ -38,7 +39,6 @@ class FeatureClassObj:
     ) -> None:
         self.name = name
         self.shape_type = shape_type
-
 
 
 class TrackPointClass:
