@@ -129,6 +129,29 @@ def main(config):
             logh.log_entry('"Password" property value is None or empty.', logh.LL_ERROR)
             raise Exception('"Password" property value is None or empty.') from None
 
+        # MARK: Default Field Names
+        # Get the KeyFields object
+        if not hasattr(config, 'KeyFields'):
+            logh.log_entry('"KeyFields" property not found in config file.', logh.LL_ERROR)
+            raise Exception('"KeyFields" property not found in config file.') from None
+
+        logh.log_entry('getting KeyFields')
+        key_fields = config.KeyFields
+        keyfld_area_ha: str|None = getattr(key_fields, genh.KeyFieldType.AREA_HA.value, None)
+        keyfld_area_ac: str|None = getattr(key_fields, genh.KeyFieldType.AREA_AC.value, None)
+        keyfld_length_m: str|None = getattr(key_fields, genh.KeyFieldType.LENGTH_M.value, None)
+        keyfld_easting: str|None = getattr(key_fields, genh.KeyFieldType.EASTING.value, None)
+        keyfld_northing: str|None = getattr(key_fields, genh.KeyFieldType.NORTHING.value, None)
+        keyfld_zone: str|None = getattr(key_fields, genh.KeyFieldType.ZONE.value, None)
+
+        logh.log_entry(f'Key Fields')
+        logh.log_entry(f' {genh.KeyFieldType.AREA_HA.name}: {keyfld_area_ha}')
+        logh.log_entry(f' {genh.KeyFieldType.AREA_AC.name}: {keyfld_area_ac}')
+        logh.log_entry(f' {genh.KeyFieldType.LENGTH_M.name}: {keyfld_length_m}')
+        logh.log_entry(f' {genh.KeyFieldType.EASTING.name}: {keyfld_easting}')
+        logh.log_entry(f' {genh.KeyFieldType.NORTHING.name}: {keyfld_northing}')
+        logh.log_entry(f' {genh.KeyFieldType.ZONE.name}: {keyfld_zone}')
+
         # MARK: Feature Class List
         logh.log_entry('Feature Classes')
 
@@ -162,7 +185,15 @@ def main(config):
         pmsg += f' > Enterprise Geodatabase: {tld_db}\n'
         pmsg += f' > Login: {tld_login}\n'
         pmsg += f'--------------------------------------------------\n'
-        pmsg += f' > FEATURE CLASSES\n'
+        pmsg += f'KEY FIELDS\n'
+        pmsg += f' > {genh.KeyFieldType.AREA_HA.name}: {keyfld_area_ha or "<not found or provided>"}\n'
+        pmsg += f' > {genh.KeyFieldType.AREA_AC.name}: {keyfld_area_ac or "<not found or provided>"}\n'
+        pmsg += f' > {genh.KeyFieldType.LENGTH_M.name}: {keyfld_length_m or "<not found or provided>"}\n'
+        pmsg += f' > {genh.KeyFieldType.EASTING.name}: {keyfld_easting or "<not found or provided>"}\n'
+        pmsg += f' > {genh.KeyFieldType.NORTHING.name}: {keyfld_northing or "<not found or provided>"}\n'
+        pmsg += f' > {genh.KeyFieldType.ZONE.name}: {keyfld_zone or "<not found or provided>"}\n'
+        pmsg += f'--------------------------------------------------\n'
+        pmsg += f'FEATURE CLASSES\n'
 
         for feature_class_entry in feature_class_entries:
             pmsg += f' >   {feature_class_entry}\n'
@@ -281,10 +312,15 @@ def main(config):
         #   - Calculate length for each line feature
 
         # Divvy up into point, line, and polygon groups
+        fc_all: list[FeatureClassObj] = [fc_obj for fc_obj in dict_feature_classes.values()]
         fc_points: list[FeatureClassObj] = [fc_obj for fc_obj in dict_feature_classes.values() if fc_obj.shape_type.lower() == genh.ShapeType.POINT.value]
         fc_polylines: list[FeatureClassObj] = [fc_obj for fc_obj in dict_feature_classes.values() if fc_obj.shape_type.lower() == genh.ShapeType.POLYLINE.value]
         fc_polygons: list[FeatureClassObj] = [fc_obj for fc_obj in dict_feature_classes.values() if fc_obj.shape_type.lower() == genh.ShapeType.POLYGON.value]
 
+
+        logh.log_entry('ALL FCS:')
+        for fc in fc_all:
+            logh.log_entry(f' > {fc.name}')
         logh.log_entry('POINT FCS:')
         for fc_point in fc_points:
             logh.log_entry(f' > {fc_point.name}')
@@ -294,22 +330,134 @@ def main(config):
         logh.log_entry('POLYGON FCS:')
         for fc_polygon in fc_polygons:
             logh.log_entry(f' > {fc_polygon.name}')
-        
+
+        # Establish existence of key fields
+        if keyfld_area_ha is not None:
+            for fc_obj in fc_all:
+                for fld in arcpy.ListFields(dataset=fc_obj.name):
+                    if fld.name.lower() == keyfld_area_ha.lower():
+                        fc_obj.has_area_ha = True
+                        fc_obj.fld_area_ha = fld.name
+        if keyfld_area_ac is not None:
+            for fc_obj in fc_all:
+                for fld in arcpy.ListFields(dataset=fc_obj.name):
+                    if fld.name.lower() == keyfld_area_ac.lower():
+                        fc_obj.has_area_ac = True
+                        fc_obj.fld_area_ac = fld.name
+        if keyfld_length_m is not None:
+            for fc_obj in fc_all:
+                for fld in arcpy.ListFields(dataset=fc_obj.name):
+                    if fld.name.lower() == keyfld_length_m.lower():
+                        fc_obj.has_length_m = True
+                        fc_obj.fld_length_m = fld.name
+        if keyfld_easting is not None:
+            for fc_obj in fc_all:
+                for fld in arcpy.ListFields(dataset=fc_obj.name):
+                    if fld.name.lower() == keyfld_easting.lower():
+                        fc_obj.has_easting = True
+                        fc_obj.fld_easting = fld.name
+        if keyfld_northing is not None:
+            for fc_obj in fc_all:
+                for fld in arcpy.ListFields(dataset=fc_obj.name):
+                    if fld.name.lower() == keyfld_northing.lower():
+                        fc_obj.has_northing = True
+                        fc_obj.fld_northing = fld.name
+        if keyfld_zone is not None:
+            for fc_obj in fc_all:
+                for fld in arcpy.ListFields(dataset=fc_obj.name):
+                    if fld.name.lower() == keyfld_zone.lower():
+                        fc_obj.has_zone = True
+                        fc_obj.fld_zone = fld.name
+
+        for fc_obj in fc_all:
+            logh.log_entry(f'FC: {fc_obj.name}')
+            logh.log_entry(f'  > {genh.KeyFieldType.AREA_HA.name}: {fc_obj.has_area_ha}  ---  {fc_obj.fld_area_ha}')
+            logh.log_entry(f'  > {genh.KeyFieldType.AREA_AC.name}: {fc_obj.has_area_ac}  ---  {fc_obj.fld_area_ac}')
+            logh.log_entry(f'  > {genh.KeyFieldType.LENGTH_M.name}: {fc_obj.has_length_m}  ---  {fc_obj.fld_length_m}')
+            logh.log_entry(f'  > {genh.KeyFieldType.EASTING.name}: {fc_obj.has_easting}  ---  {fc_obj.fld_easting}')
+            logh.log_entry(f'  > {genh.KeyFieldType.NORTHING.name}: {fc_obj.has_northing}  ---  {fc_obj.fld_northing}')
+            logh.log_entry(f'  > {genh.KeyFieldType.ZONE.name}: {fc_obj.has_zone}  ---  {fc_obj.fld_zone}')
+
+
+        # Now for each FC, for each feature, retrieve a centroid point in WGS84
+        sr = genh.get_sr_gcs_wgs84()
+        for fc_obj in fc_points:
+            if fc_obj.name.lower() == 'ITGEO_GEN.MWO_AnthroPoint'.lower():
+
+                with arcpy.da.SearchCursor(in_table=fc_obj.name,
+                                           field_names='SHAPE@XY',
+                                           spatial_reference=sr) as cursor:
+                    for row in cursor:
+                        # TODO: Check for None values from the shape token = null geometry
+                        wgs84_x, wgs84_y = row[0]
+
+                        if wgs84_x is not None:
+                            # Get the zone
+                            # TODO: Make this more robust (if longitude is not between 0 and -180)
+                            z = ((wgs84_x + 180)//6) + 1
+
+                            # Get the easting and northing
+                            epsg = 32600 + z
+                            utm_sr = arcpy.SpatialReference(epsg)
+                            # TODO: I'm here!!!
+                            # Construct a point geometry object
+                            # RETRIEVE the transformation so I can project the point geometry object
+
+
+
+
+
+                del cursor
+        # # Open the search cursor
+        # logh.log_entry('Opening cursor on track points source...')
+        # fields = [
+        #     TrackPointClass.fld_created_user[0],
+        #     TrackPointClass.fld_full_name[0],
+        #     TrackPointClass.fld_location_timestamp[0]
+        # ]
+
+        # with arcpy.da.SearchCursor(in_table=tps_conn,
+        #                            field_names=fields,
+        #                            sql_clause = (None, f'ORDER BY {TrackPointClass.fld_created_user[0]}')) as cursor:
+        #     for row in cursor:
+        #         user = row[0]                   # user
+        #         full_name = row[1]              # full name
+        #         location_timestamp = row[2]     # stamp
+
+        #         # If the user isn't in the dictionary yet, add an entry
+        #         if user not in track_users:
+        #             uc_object = UserClass(user=user,
+        #                                   user_id=0,
+        #                                   full_name=full_name,
+        #                                   earliest_timestamp=location_timestamp,
+        #                                   latest_timestamp=location_timestamp,
+        #                                   points_all=1,
+        #                                   points_low_accuracy=0,
+        #                                   points_deleted_dupes=0,
+        #                                   points_orphan=0,
+        #                                   points_line=0,
+        #                                   line_count=0)
+
+        #             track_users[user] = uc_object
+
+        #         # User already exists in the dictionary - update some values                    
+        #         else:
+        #             uc_object = track_users[user]
+        #             uc_object.points_all += 1
+        #             if location_timestamp < uc_object.earliest_timestamp:
+        #                 uc_object.earliest_timestamp = location_timestamp
+        #             if location_timestamp > uc_object.latest_timestamp:
+        #                 uc_object.latest_timestamp = location_timestamp
+        # del cursor
+
+
+
+
         # Check for default fields in each feature class
         # # Standard area field names used across most polygon layers
         # FIELD_AREA_HA  = "UTM_Ha"   # geodesic hectares
         # FIELD_AREA_AC  = "UTM_Ac"   # international acres (converted from Ha)
         # INTERNATIONAL_ACRES_PER_HA = 2.471053814671653
-
-        # # Standard coordinate/measurement field names 
-        # FIELD_UTM_ZONE = "UTM_Zone"
-        # FIELD_EASTING  = "Easting"
-        # FIELD_NORTHING = "Northing"
-        # FIELD_LEN_UTM  = "Length_UTM"
-
-        # TODO: I'm Here!!!
-
-
 
         # endregion
 

@@ -34,11 +34,35 @@ class FeatureClassObj:
 
     def __init__(
             self,
-            name: str = '',
-            shape_type: str = '',
+            name: str,
+            shape_type: str,
+            has_area_ha: bool = False,
+            has_area_ac: bool = False,
+            has_length_m: bool = False,
+            has_easting: bool = False,
+            has_northing: bool = False,
+            has_zone: bool = False,
+            fld_area_ha: str = '',
+            fld_area_ac: str = '',
+            fld_length_m: str = '',
+            fld_easting: str = '',
+            fld_northing: str = '',
+            fld_zone: str = ''
     ) -> None:
         self.name = name
         self.shape_type = shape_type
+        self.has_area_ha = has_area_ha
+        self.has_area_ac = has_area_ac
+        self.has_length_m = has_length_m
+        self.has_easting = has_easting
+        self.has_northing = has_northing
+        self.has_zone = has_zone
+        self.fld_area_ha = fld_area_ha
+        self.fld_area_ac = fld_area_ac
+        self.fld_length_m = fld_length_m
+        self.fld_easting = fld_easting
+        self.fld_northing = fld_northing
+        self.fld_zone = fld_zone
 
 
 class TrackPointClass:

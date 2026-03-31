@@ -84,3 +84,11 @@ class ShapeType(Enum):
     MULTIPOINT='multipoint'
     POLYLINE='polyline'
     POLYGON='polygon'
+
+class KeyFieldType(Enum):
+    AREA_HA='AREA_HA'
+    AREA_AC='AREA_AC'
+    LENGTH_M='LENGTH_M'
+    EASTING='EASTING'
+    NORTHING='NORTHING'
+    ZONE='ZONE'

@@ -10,6 +10,16 @@
         "KeepPrelimObjects": true
     },
 
+    // Default Field Names
+    "KeyFields": {
+        "AREA_HA": "UTM_Ha",
+        "AREA_AC": "UTM_Ac",
+        "LENGTH_M": "Length_UTM",
+        "EASTING": "Easting",
+        "NORTHING": "Northing",
+        "ZONE": "UTM_Zone"
+    },
+
     // Feature Classes
     "FeatureClasses": [
         "ITGEO_GEN.MWO_AnthroLine",
